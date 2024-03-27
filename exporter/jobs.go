@@ -346,6 +346,13 @@ func (jc *JobsCollector) Collect(ch chan<- prometheus.Metric) {
 		slog.Error("fetcher failure %q", err)
 		return
 	}
+
+	for _, jobMetric := range jobMetrics {
+		jobid := fmt.Sprint(int64(jobMetric.JobId))
+		ch <- prometheus.MustNewConstMetric(jc.jobAllocCpus, prometheus.GaugeValue, jobMetric.JobResources.AllocCpus, jobid)
+		ch <- prometheus.MustNewConstMetric(jc.jobAllocMem, prometheus.GaugeValue, totalAllocMem(&jobMetric.JobResources), jobid)
+	}
+
 	userMetrics := parseUserJobMetrics(jobMetrics)
 	for user, metric := range userMetrics {
 		if metric.allocCpu > 0 {
