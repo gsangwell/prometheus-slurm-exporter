@@ -286,6 +286,11 @@ func fetchNodeTotalMemMetrics(nodes []NodeMetric) *MemSummaryMetric {
 type NodesCollector struct {
 	// collector state
 	fetcher SlurmMetricFetcher[NodeMetric]
+	// node metrics
+	nodeTotalCpus        *prometheus.Desc
+	nodeAllocCpus        *prometheus.Desc
+	nodeTotalMemory      *prometheus.Desc
+	nodeAllocMemory      *prometheus.Desc
 	// partition summary metrics
 	partitionCpus        *prometheus.Desc
 	partitionRealMemory  *prometheus.Desc
@@ -325,6 +330,11 @@ func NewNodeCollecter(config *Config) *NodesCollector {
 	}
 	return &NodesCollector{
 		fetcher: fetcher,
+		// node metrics
+		nodeTotalCpus:        prometheus.NewDesc("slurm_node_total_cpus", "Total cpus per node", []string{"node"}, nil),
+		nodeAllocCpus:        prometheus.NewDesc("slurm_node_alloc_cpus", "Alloc cpus per node", []string{"node"}, nil),
+		nodeTotalMemory:      prometheus.NewDesc("slurm_node_total_mem", "Total mem per node", []string{"node"}, nil),
+		nodeAllocMemory:      prometheus.NewDesc("slurm_node_alloc_mem", "Alloc mem per node", []string{"node"}, nil),
 		// partition stats
 		partitionCpus:        prometheus.NewDesc("slurm_partition_total_cpus", "Total cpus per partition", []string{"partition"}, nil),
 		partitionRealMemory:  prometheus.NewDesc("slurm_partition_real_mem", "Real mem per partition", []string{"partition"}, nil),
@@ -351,6 +361,10 @@ func NewNodeCollecter(config *Config) *NodesCollector {
 }
 
 func (nc *NodesCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- nc.nodeTotalCpus
+	ch <- nc.nodeAllocCpus
+	ch <- nc.nodeTotalMemory
+	ch <- nc.nodeAllocMemory
 	ch <- nc.partitionCpus
 	ch <- nc.partitionRealMemory
 	ch <- nc.partitionFreeMemory
@@ -379,6 +393,15 @@ func (nc *NodesCollector) Collect(ch chan<- prometheus.Metric) {
 		slog.Error("Failed to parse node metrics: " + err.Error())
 		return
 	}
+
+	// node metrics
+	for _, node := range nodeMetrics {
+		ch <- prometheus.MustNewConstMetric(nc.nodeTotalCpus, prometheus.GaugeValue, node.Cpus, node.Hostname)
+		ch <- prometheus.MustNewConstMetric(nc.nodeAllocCpus, prometheus.GaugeValue, node.AllocCpus, node.Hostname)
+		ch <- prometheus.MustNewConstMetric(nc.nodeTotalMemory, prometheus.GaugeValue, node.RealMemory, node.Hostname)
+		ch <- prometheus.MustNewConstMetric(nc.nodeAllocMemory, prometheus.GaugeValue, node.AllocMemory, node.Hostname)
+	}
+
 	// partition set
 	partitionMetrics := fetchNodePartitionMetrics(nodeMetrics)
 	for partition, metric := range partitionMetrics {
