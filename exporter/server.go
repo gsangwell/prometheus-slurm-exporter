@@ -140,7 +140,8 @@ func NewConfig(cliFlags *CliFlags) (*Config, error) {
 	if cliOpts.fallback {
 		// we define a custom json format that we convert back into the openapi format
 		cliOpts.squeue = []string{"squeue", "--states=all", "-h", "-o", `{"a": "%a", "id": %A, "end_time": "%e", "u": "%u", "state": "%T", "p": "%P", "cpu": %C, "mem": "%m"}`}
-		cliOpts.sinfo = []string{"sinfo", "-h", "-o", `{"s": "%T", "mem": %m, "n": "%n", "l": "%O", "p": "%R", "fmem": "%e", "cstate": "%C", "w": %w}`}
+		//cliOpts.sinfo = []string{"sinfo", "-h", "-o", `{"s": "%T", "mem": %m, "n": "%n", "l": "%O", "p": "%R", "fmem": "%e", "cstate": "%C", "w": %w}`}
+		cliOpts.sinfo = []string{"sinfo", "-h", "-O", `StateLong:50,Memory:50,NodeHost:50,CPUsLoad:50,PartitionName:50,AllocMem:50,CPUsState:50,Weight:50,Gres:50,GresUsed:50`}
 		traceConf.sharedFetcher = &JobCliFallbackFetcher{
 			scraper: NewCliScraper(cliOpts.squeue...),
 			cache:   NewAtomicThrottledCache[JobMetric](config.PollLimit),
